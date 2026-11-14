@@ -11,13 +11,16 @@ PyLBM-Isca is newly written code that **follows the structure of** the
 Watanabe–Kimoto linear baroclinic model (a spectral, sigma-coordinate,
 vorticity–divergence, semi-implicit primitive-equation LBM) while deriving its
 dynamical core term by term from the **GPLv3** Isca / GFDL `atmos_spectral`
-sources. The motivation is **licensing**: the Watanabe–Kimoto Fortran LBM is not
-open source — access is by individual permission from the authors — so code
-derived from it inherits that restriction. Isca, by contrast, is GPLv3 open
-source, and its dynamical core is GFDL's spectral-transform primitive-equation
-core. Because PyLBM-Isca shares **no code** with the restricted `ln_solver` and
-derives only from the GPLv3 Isca sources and standard published numerical
-methods, it can be freely distributed under the GPL.
+sources. The goal is an **openly licensed, cloud-reproducible** sibling of the
+Watanabe–Kimoto LBM. The original Fortran is shared on request by its maintainers
+at AORI (University of Tokyo) and predates today's open-archive and
+cloud-notebook workflows; to make a version that can be archived with a paper and
+run in a browser, PyLBM-Isca builds its core from the GPLv3 Isca sources — GFDL's
+spectral-transform primitive-equation core — rather than porting the Fortran. So
+every term is checkable against an open code base, and the whole model can be
+released under the GPL. PyLBM-Isca is developed with the support of the original
+authors, with whom open distribution and further collaboration are being
+arranged.
 
 | | |
 |---|---|
@@ -37,7 +40,7 @@ machinery (the spherical-harmonic transforms, the basic-state / forcing / output
 pipeline, and the GPU backend) is written from standard published methods and
 follows the structure of the Watanabe–Kimoto LBM. It uses the same file and grid
 conventions, so the two models are directly comparable and share input and output
-formats, but PyLBM-Isca contains no code from the restricted package.
+formats, while PyLBM-Isca's code is newly written from the GPLv3 Isca sources.
 
 ## Provenance (what it is derived from)
 
@@ -53,8 +56,8 @@ repository `github.com/ExeClim/Isca`:
 | time filter    | `src/atmos_spectral/model/leapfrog.F90` (Robert–Asselin; Robert 1966, Asselin 1972) |
 
 This is a re-derivation from the cited GPLv3 Isca sources and standard published
-numerical methods; it contains **no** code from the permission-restricted
-Watanabe–Kimoto `ln_solver`.
+numerical methods; its code is newly written and shares none with the
+Watanabe–Kimoto `ln_solver`, so the whole model can be released under the GPL.
 
 ## How it differs from the Watanabe–Kimoto LBM
 
@@ -271,8 +274,10 @@ You can run examples 2 and 3 with zero setup (and a free GPU) in
 ## License
 
 GPLv3-or-later — see [`LICENSE`](LICENSE). PyLBM-Isca is a re-derivation from the
-GPLv3 Isca sources (`github.com/ExeClim/Isca`); it contains **no** code from the
-permission-restricted Watanabe–Kimoto `ln_solver`.
+GPLv3 Isca sources (`github.com/ExeClim/Isca`); its code is newly written and
+shares none with the Watanabe–Kimoto `ln_solver`. It is developed with the
+support of the original LBM authors, with open distribution and collaboration
+being arranged.
 
 ## Citation
 
