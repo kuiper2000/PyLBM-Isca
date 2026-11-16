@@ -1,0 +1,49 @@
+# Jupyter Book (MyST) configuration for the PyLBM-Isca Users' Guide.
+# Build the website:   jupyter-book start        (live preview)
+#                      jupyter-book build --html  (static site -> _build/html)
+# Build a PDF:         jupyter-book build --pdf
+version: 1
+project:
+  id: pylbm-isca-users-guide
+  title: PyLBM-Isca Users' Guide
+  description: >-
+    A Users' Guide for PyLBM-Isca, a Linear Baroclinic Model on the Isca/GFDL
+    spectral core -- modelled on the Watanabe-Kimoto LBM Package Users' Guide.
+  authors:
+    - name: PyLBM-Isca authors
+  github: https://github.com/kuiper2000/PyLBM-Isca
+  license:
+    content: CC-BY-4.0
+    code: GPL-3.0-or-later
+  subject: Atmospheric dynamics
+  keywords:
+    - linear baroclinic model
+    - Isca
+    - spectral primitive equations
+    - teleconnections
+  math:
+    '\Tv': '{T_{\mathrm{v}}}'
+  toc:
+    - file: intro.md
+    - title: 1. About this package
+      file: 01-about.md
+    - title: 2. Getting started
+      file: 02-getting-started.md
+    - title: 3. Steady response
+      file: 03-steady-response.ipynb
+    - title: 4. Storm Track Model (STM)
+      file: 04-storm-track.ipynb
+    - title: 5. Modal decomposition
+      file: 05-modal-decomposition.ipynb
+    - title: 6. Nonlinear dynamical model
+      file: 06-nonlinear.ipynb
+    - title: 7. Moist LBM
+      file: 07-moist.md
+    - title: 8. Barotropic model
+      file: 08-barotropic.ipynb
+    - title: A. Mathematical principles
+      file: a-math-principles.md
+    - title: B. Troubleshooting
+      file: b-troubleshooting.md
+site:
+  template: book-theme

@@ -271,6 +271,26 @@ experiments; each differs only in its **basic state**:
 You can run examples 2 and 3 with zero setup (and a free GPU) in
 [Google Colab](https://colab.research.google.com/drive/1PEQdTSNQfhj1O-UJGLtZP0O8mxyxIDK2?usp=sharing).
 
+## Users' Guide
+
+A multi-chapter **Users' Guide** — modelled on the Watanabe–Kimoto *LBM Package
+Users' Guide* — lives in [`docs/book/`](docs/book) as a
+[Jupyter Book](https://next.jupyterbook.org) (MyST). Beyond installing and
+running the model, it builds each of the WK guide's diagnostics **on the
+package's linearised tendency** $\mathbf{L}(\bar x)\,x'$: the steady response by
+time integration and matrix inversion, the Storm Track Model (Lyapunov), the
+modal (eigenvalue) decomposition and baroclinic instability, the tangent-linear
+test, and the barotropic reduction with optimal-growth singular vectors. The
+shared operator helper is [`docs/book/lbmtools.py`](docs/book/lbmtools.py).
+
+```bash
+pip install "jupyter-book>=2" nbclient
+cd docs/book && jupyter-book build --html     # -> _build/html ; or: jupyter-book start
+```
+
+The computational chapters run at a reduced T21 L20 and need no external data, so
+the whole book builds offline in a couple of minutes.
+
 ## License
 
 GPLv3-or-later — see [`LICENSE`](LICENSE). PyLBM-Isca is a re-derivation from the

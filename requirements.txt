@@ -15,3 +15,7 @@ matplotlib>=3.6
 #   pip install cupy-cuda12x        # CUDA 12.x
 #   pip install cupy-cuda11x        # CUDA 11.x
 # The CPU (NumPy) backend needs none of this; device="auto" falls back to CPU.
+
+# Optional: build the Users' Guide (docs/book, a Jupyter Book 2 / MyST project).
+#   pip install "jupyter-book>=2" nbclient
+#   cd docs/book && jupyter-book build --html

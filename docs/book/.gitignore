@@ -1,0 +1,5 @@
+# Jupyter Book (MyST) build artefacts
+_build/
+node_modules/
+*.pyc
+__pycache__/
