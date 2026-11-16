@@ -3,6 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24084237.svg)](https://doi.org/10.5281/zenodo.24084237)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1PEQdTSNQfhj1O-UJGLtZP0O8mxyxIDK2?usp=sharing)
+[![Users' Guide](https://img.shields.io/badge/docs-Users'%20Guide-blue)](https://kuiper2000.github.io/PyLBM-Isca/)
 
 A **Linear Baroclinic Model** whose dynamical core is a **linearisation of the
 Isca / GFDL `atmos_spectral` primitive equations**.
@@ -273,9 +274,12 @@ You can run examples 2 and 3 with zero setup (and a free GPU) in
 
 ## Users' Guide
 
+📖 **Read it online: <https://kuiper2000.github.io/PyLBM-Isca/>**
+
 A multi-chapter **Users' Guide** — modelled on the Watanabe–Kimoto *LBM Package
 Users' Guide* — lives in [`docs/book/`](docs/book) as a
-[Jupyter Book](https://next.jupyterbook.org) (MyST). Beyond installing and
+[Jupyter Book](https://next.jupyterbook.org) (MyST), published to GitHub Pages at
+the link above. Beyond installing and
 running the model, it builds each of the WK guide's diagnostics **on the
 package's linearised tendency** $\mathbf{L}(\bar x)\,x'$: the steady response by
 time integration and matrix inversion, the Storm Track Model (Lyapunov), the
