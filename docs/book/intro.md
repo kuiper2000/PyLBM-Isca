@@ -38,6 +38,7 @@ from the GPLv3 Isca sources, so the whole model can be released under the GPL.
 | 8. Barotropic model | [](08-barotropic.ipynb) | single-level nondivergent reduction, full spectrum |
 | A. Mathematical principles | [](a-math-principles.md) | the linear dynamical system and its operator |
 | B. Troubleshooting | [](b-troubleshooting.md) | common questions, where to change things |
+| C. The `LBM` driver | [](c-lbm-driver.md) | complete reference for the main `model.py` driver — `Config`, `run()`, the time loop |
 
 :::{tip} One operator, many chapters
 Everything past a plain forward integration is a wrapper around a single object:

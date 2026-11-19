@@ -45,5 +45,7 @@ project:
       file: a-math-principles.md
     - title: B. Troubleshooting
       file: b-troubleshooting.md
+    - title: C. The LBM driver (reference)
+      file: c-lbm-driver.md
 site:
   template: book-theme

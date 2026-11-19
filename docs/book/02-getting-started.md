@@ -150,3 +150,10 @@ psi = model.diagnostics()["psi"]              # streamfunction, grid space
 That is the whole workflow. The remaining chapters keep this skeleton — build
 `sp, vg`; choose `bs`; choose `f` — and change only the *question* asked of the
 operator.
+
+:::{seealso} The `LBM` driver in full
+This chapter shows the happy path. For a complete reference to the main
+`model.py` driver — **every** `Config` knob, **every** `run()` argument, the
+startup ramp, the semi-implicit/Robert–Asselin step, history averaging, the
+moist path and ensemble runs — see [](c-lbm-driver.md).
+:::
