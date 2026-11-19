@@ -1,10 +1,20 @@
 # Input data
 
-## NetCDF inputs (committed)
+All example inputs are **archived on Zenodo** and downloaded into `data/` on
+first run — none are stored in git (`*.nc` and `*.bin` are gitignored). The
+idealised Gill and solid-body examples build their basic states analytically and
+need nothing from this folder.
 
-Self-contained NetCDF inputs for the **realistic dry** experiment
+> **DOI (latest version):**
+> [10.5281/zenodo.24086133](https://doi.org/10.5281/zenodo.24086133) — the
+> *concept* DOI, which always resolves to the newest version
+> · latest record <https://zenodo.org/records/24086134>
+
+## NetCDF inputs
+
+NetCDF inputs for the **realistic dry** experiment
 (`examples/example_3_realistic.ipynb`) and the **moist** experiment
-(`examples/example_4_moist.ipynb`). These ship in the repository.
+(`examples/example_4_moist.ipynb`).
 
 | file | size | description |
 |---|---|---|
@@ -20,17 +30,10 @@ python run_lbm.py --basic-state data/ncep.clim.t42.nc --moist \
     --days 10 --out out/isca.moist.elnino --netcdf
 ```
 
-## Binary inputs (Zenodo)
+## Binary inputs
 
-Binary inputs for the MJO forcing and the seasonality comparison. The idealised
-Gill and solid-body examples build their basic states analytically and need
-nothing from this folder.
-
-These files are **not stored in git** — they are archived on Zenodo and
-downloaded here on first run:
-
-> **DOI:** [10.5281/zenodo.24086134](https://doi.org/10.5281/zenodo.24086134)
-> · record <https://zenodo.org/records/24086134>
+Binary inputs for the MJO forcing and the seasonality comparison, in the
+Watanabe–Kimoto Fortran-sequential layout.
 
 | file | size | description |
 |---|---|---|
@@ -38,7 +41,7 @@ downloaded here on first run:
 | `bs.jja.bin`     | 11 MB | **ERA5** reanalysis **summer (JJA) basic state**, same layout as `bs.1979.bin`, used for the seasonality comparison (`analysis/summer_validation.py`). The fields were downloaded only up to 100 hPa, so the levels above are extrapolated; the analysis holds them isothermally above 100 hPa (those levels lie in the top sponge). Supply a full-depth file to avoid this. |
 | `frc.phase1.bin` | 46 MB | **MJO phase-1** time-varying temperature forcing, 73 days × 20 levels on the same grid. Read by `pylbm_isca.forcing.MJOForcing`. |
 
-Both files use a Fortran-sequential, big-endian `real*4` layout and are
+These files use a Fortran-sequential, big-endian `real*4` layout and are
 interchangeable with any file of the same structure — substitute your own
 basic state / forcing by pointing `--basic-state` / `--mjo-forcing` (or the
 notebook's `DATA` path) elsewhere.
