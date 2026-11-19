@@ -34,17 +34,34 @@ VAR_INFO = {
     "p": ("surface pressure", "hPa"),
 }
 
+# Moist-model diagnostics.  Written in addition to the eight standard variables
+# when ``moist_vars=True`` is passed to a writer, giving the 11-variable moist
+# history of the moist LBM (User's Guide §7.1).
+MOIST_VARS = ["q1c", "q2c", "q1l", "q2l", "pr"]
+MOIST_VAR_INFO = {
+    "q1c": ("convective heat source Q1", "K/s"),
+    "q2c": ("convective moisture source Q2", "kg/kg/s"),
+    "q1l": ("large-scale-condensation heat source Q1L", "K/s"),
+    "q2l": ("large-scale-condensation moisture source Q2L", "kg/kg/s"),
+    "pr": ("precipitation", "mm/day"),
+}
+
 
 class GradsWriter:
     """Writes ``out.grd`` + ``out.ctl`` GrADS flat binary."""
 
     def __init__(self, path, spectral, vertical, ctl_path=None,
-                 apply_gt2gr_z=True, title="PyLBM-Isca T42L20"):
+                 apply_gt2gr_z=True, title="PyLBM-Isca T42L20",
+                 moist_vars=False):
         self.path = path
         self.ctl_path = ctl_path or (os.path.splitext(path)[0] + ".ctl")
         self.sp, self.vg = spectral, vertical
         self.apply_gt2gr_z = apply_gt2gr_z
         self.title = title
+        # When moist_vars is set, append the five moist diagnostics after the
+        # eight standard variables (11-variable moist history).
+        self.vars = VARS + (MOIST_VARS if moist_vars else [])
+        self.var_info = {**VAR_INFO, **MOIST_VAR_INFO}
         self.ntime = 0
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         self.fh = open(path, "wb")
@@ -61,7 +78,7 @@ class GradsWriter:
         f = {k: asnumpy(v) for k, v in fields.items()}
         if self.apply_gt2gr_z:
             f["z"] = f["z"] + f["p"][..., None] * 1.0e2 / (RHO00 * GRAV_GT2GR)
-        for name in VARS:
+        for name in self.vars:
             a = f[name]
             if a.ndim == 2:
                 self._record(a)
@@ -92,10 +109,10 @@ class GradsWriter:
         for i in range(0, vg.kmax, 6):
             lines.append(" " + " ".join(f"{x:.6g}" for x in vg.sig[i:i + 6]))
         lines.append(f"TDEF {max(self.ntime,1)} LINEAR 01jan0001 1dy")
-        lines.append(f"VARS {len(VARS)}")
-        for name in VARS:
-            desc, unit = VAR_INFO[name]
-            nz = 0 if name == "p" else vg.kmax
+        lines.append(f"VARS {len(self.vars)}")
+        for name in self.vars:
+            desc, unit = self.var_info[name]
+            nz = 0 if name in ("p", "pr") else vg.kmax
             lines.append(f"{name:4s} {nz:3d} 99 {desc} [{unit}]")
         lines.append("ENDVARS")
         with open(self.ctl_path, "w") as fh:
@@ -105,19 +122,22 @@ class GradsWriter:
 class NetCDFWriter:
     """Optional netCDF output (requires netCDF4 or xarray)."""
 
-    def __init__(self, path, spectral, vertical, apply_gt2gr_z=True):
+    def __init__(self, path, spectral, vertical, apply_gt2gr_z=True,
+                 moist_vars=False):
         self.path = path
         self.sp, self.vg = spectral, vertical
         self.apply_gt2gr_z = apply_gt2gr_z
+        self.vars = VARS + (MOIST_VARS if moist_vars else [])
+        self.var_info = {**VAR_INFO, **MOIST_VAR_INFO}
         self.days = []
-        self.data = {v: [] for v in VARS}
+        self.data = {v: [] for v in self.vars}
 
     def add(self, day, fields):
         f = {k: asnumpy(v) for k, v in fields.items()}
         if self.apply_gt2gr_z:
             f["z"] = f["z"] + f["p"][..., None] * 1.0e2 / (RHO00 * GRAV_GT2GR)
         self.days.append(day)
-        for v in VARS:
+        for v in self.vars:
             a = f[v]
             # store single precision, matching the real*4 of the GrADS path -
             # float64 would double the file for no extra information
@@ -137,11 +157,11 @@ class NetCDFWriter:
                   "lat": sp.lat_deg,
                   "lon": sp.lon_deg}
         ds = xr.Dataset(coords=coords)
-        for v in VARS:
+        for v in self.vars:
             arr = np.array(self.data[v])
             dims = (("time", "lat", "lon") if arr.ndim == 3
                     else ("time", "sigma", "lat", "lon"))
-            desc, unit = VAR_INFO[v]
+            desc, unit = self.var_info[v]
             ds[v] = (dims, arr, {"long_name": desc, "units": unit})
         ds.attrs["title"] = "LBM T42L20 dry, python port"
         ds.attrs["note"] = ("latitudes are the T42 Gaussian grid, north first;"

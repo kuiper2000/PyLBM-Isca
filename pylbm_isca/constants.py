@@ -50,10 +50,26 @@ OMEGA = 7.2921150e-5  # rotation rate [rad s-1]     (constants.F90:254,260)
 
 # Aliases / derived quantities kept for API parity with lbm.constants.
 RAIR = RDGAS                     # the dry gas constant, R
+RVAP = RVGAS                     # the water-vapour gas constant, Rv
 EPSV = RDGAS / RVGAS             # 0.62197...
 # Virtual-temperature factor: Tv = T (1 + EPSVT q), EPSVT = Rv/Rd - 1 ~ 0.608
 # (spectral_dynamics.F90:440, virtual_factor = rvgas/rdgas - 1).
 EPSVT = RVGAS / RDGAS - 1.0      # 0.60781...
+
+# ---------------------------------------------------------------------------
+# Moist-physics constants.  These feed the Clausius-Clapeyron saturation
+# functions and the linearised surface-flux / convection scheme in
+# :mod:`pylbm_isca.moist`, and follow the Watanabe-Kimoto moist-LBM values so
+# the convective physics reproduces the reference implementation.
+# ---------------------------------------------------------------------------
+EL = 2.5e6            # latent heat of vaporisation [J kg-1]
+CPVAP = 1810.0        # specific heat of water vapour [J kg-1 K-1]
+ES0 = 611.0           # saturation vapour pressure at T0 [Pa]
+TMELT = 273.15        # melting point of water [K]
+EMELT = 3.4e5         # latent heat of fusion [J kg-1]
+TQICE = 273.15        # T threshold for ice saturation [K]
+FKARM = 0.4           # von Karman constant
+DWATR = 1000.0        # density of water [kg m-3]
 
 DAYLEN_SEC = 86400.0
 S2D = 86400.0         # seconds per day, used by the forcing / damping scaling

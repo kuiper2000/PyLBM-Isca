@@ -62,6 +62,10 @@ class Config:
     # history
     out_interval_days: float = 1.0
     time_average: bool = True
+    # moist physics: when a MoistPhysics object is passed to run() the driver
+    # runs the interactive-moisture path (convective heating + LSC + SST-anomaly
+    # forcing).  This flag is advisory (used by run_lbm / namelist wiring).
+    moist: bool = False
     # fidelity switches
     strictly_linear: bool = False   # True drops the 0.5*(u'^2+v'^2) KE term
     # ensemble: run this many heating experiments in one batched integration
@@ -167,6 +171,7 @@ class LBM:
 
     # ------------------------------------------------------------------
     def run(self, mjo_forcing=None, steady_forcing=None, writer=None,
+            moist=None, sst_anom=None, wg_anom=None,
             verbose=True, progress_every=240):
         """Integrate forward.
 
@@ -178,6 +183,15 @@ class LBM:
         steady_forcing : SteadyForcing or None
             Constant vorticity / divergence / temperature / ln(Ps) forcing.
         writer : object with ``.add(day, fields)`` and ``.close()``
+        moist : MoistPhysics or None
+            Enables the interactive-moisture path: every step the
+            convective-adjustment + LSC heat/moisture sources and the SST-anomaly
+            surface flux are computed from the current state and added to the T
+            and q tendencies, and the implicit damping ``IMPTQ`` is applied to
+            the updated state after the leapfrog.
+        sst_anom, wg_anom : arrays or None
+            Prescribed SST / soil-wetness anomaly (grid, K and fraction) that
+            drives the external forcing F_e in moist runs.
         """
         cfg = self.cfg
         xp = self.xp
@@ -205,6 +219,13 @@ class LBM:
         sf_ps = xp.asarray(sf.ps) if sf is not None else None
         sf_t = xp.asarray(sf.t) if sf is not None else None
 
+        # Moist run: coerce the (time-constant) SST / wetness anomaly onto the
+        # device once.  The internal convective/LSC feedback is recomputed from
+        # the state every step inside the loop.
+        sst_dev = xp.asarray(sst_anom) if sst_anom is not None else None
+        wg_dev = xp.asarray(wg_anom) if wg_anom is not None else None
+        self._moist_diag = None
+
         if verbose:
             print(f"  backend: {self.device}", flush=True)
 
@@ -227,12 +248,30 @@ class LBM:
             frc_vor = sf_vor
             frc_div = sf_div
             frc_ps = sf_ps
+            frc_q = None
+
+            # --- moist physics (internal feedback + SST forcing) ------
+            # Computed from the current (time-t) state; the explicit heat and
+            # moisture sources go into frc_t/frc_q.
+            if moist is not None:
+                mt = moist.tendencies(self.ga, sst_anom=sst_dev, wg_anom=wg_dev)
+                frc_t = mt["frc_t"] if frc_t is None else frc_t + mt["frc_t"]
+                frc_q = mt["frc_q"]
+                self._moist_diag = mt
 
             # --- one step ---------------------------------------------
             tend = self.dyn.tendencies(self.ga, frc_t=frc_t, frc_vor=frc_vor,
-                                       frc_div=frc_div, frc_ps=frc_ps)
+                                       frc_div=frc_div, frc_ps=frc_ps,
+                                       frc_q=frc_q)
             # top-of-step diagnostics (all fields at time t, pre-update)
             cur_top = self.diagnostics() if writer is not None else None
+            # Moist history: Q1C/Q2C/Q1L/Q2L/PR from this step's physics,
+            # sampled at the same point as the dynamics.
+            if cur_top is not None and moist is not None and self._moist_diag:
+                md = self._moist_diag
+                cur_top.update({"q1c": md["q1c"], "q2c": md["q2c"],
+                                "q1l": md["q1l"], "q2l": md["q2l"],
+                                "pr": md["pr"]})
             prev = self.gb.to_spectral(self.sp)
             new = self.integ.step(dt, prev, tend)
             self.gc.load_spectral(self.sp, new)          # t+dt in grid space
@@ -241,6 +280,10 @@ class LBM:
             else:
                 self.gb.robert_asselin(self.ga, self.gc, cfg.robert)
             self.ga.assign(self.gc)                      # current <- t+dt
+
+            # implicit moist damping of the updated T'/q' in grid space (IMPTQ)
+            if moist is not None:
+                self.ga.t, self.ga.q = moist.imptq(self.ga.t, self.ga.q, dt)
 
             if not self.ga.isfinite():
                 raise FloatingPointError(

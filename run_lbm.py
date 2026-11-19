@@ -23,8 +23,10 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from pylbm_isca import Config, IMAX, JMAX, NMAX, Spectral, LBM, VerticalGrid  # noqa: E402
-from pylbm_isca.basicstate import load_basic_state                 # noqa: E402
+from pylbm_isca.basicstate import (load_basic_state,               # noqa: E402
+                                   load_moist_surface, load_sst_anomaly)
 from pylbm_isca.forcing import MJOForcing, SteadyForcing, autodetect  # noqa: E402
+from pylbm_isca.moist import MoistParams, MoistPhysics             # noqa: E402
 from pylbm_isca.output import GradsWriter, MultiWriter, NetCDFWriter  # noqa: E402
 from pylbm_isca.regrid import (detect_grid, regrid_basic_state,    # noqa: E402
                              regrid_mjo_forcing, regrid_steady_forcing)
@@ -60,6 +62,27 @@ def build_parser():
     g.add_argument("--spinup", type=int, default=435,
                    help="calls holding day 1 before the forcing marches")
     g.add_argument("--forcing-scale", type=float, default=1.0)
+
+    g = p.add_argument_group("moist")
+    g.add_argument("--moist", action="store_true",
+                   help="run the interactive-moisture model (convective "
+                        "heating + large-scale condensation + SST-anomaly flux)")
+    g.add_argument("--sst-mean", default="data/sst.clim.t42.nc",
+                   help="mean-SST climatology NetCDF for the moist basic state")
+    g.add_argument("--wg-mean", default="data/wg.clim.t42.nc",
+                   help="soil-wetness climatology NetCDF for the moist basic state")
+    g.add_argument("--sst-anom", default="data/frcsst.nino.t21.nc",
+                   help="prescribed SST-anomaly forcing NetCDF (moist runs)")
+    g.add_argument("--mca-ttau0", type=float, default=6.0,
+                   help="convective T relaxation time [hour]")
+    g.add_argument("--mca-qtau0", type=float, default=6.0,
+                   help="convective q relaxation time [hour]")
+    g.add_argument("--mca-ttauc", type=float, default=12.0,
+                   help="convective correction-term time [hour]")
+    g.add_argument("--mca-sigkb", type=float, default=0.9,
+                   help="PBL-top sigma (cloud base)")
+    g.add_argument("--owes", action="store_true", default=False,
+                   help="enable the wind-evaporation feedback")
 
     g = p.add_argument_group("integration")
     g.add_argument("--days", type=float, default=35.0)
@@ -118,15 +141,39 @@ def main(argv=None):
         print(f"PyLBM-Isca  T{sp.nmax} {sp.nlon}x{sp.nlat} L{vg.kmax}  "
               f"backend={device_name(sp.xp)}")
 
-    bs_nlon, bs_nlat = detect_grid(args.basic_state)
-    bs_regrid = (bs_nlon, bs_nlat) != (sp.nlon, sp.nlat)
-    bs_sp = source_spectral(bs_nlon, bs_nlat) if bs_regrid else sp
-    bs = load_basic_state(args.basic_state, bs_sp, vg, kmo=args.kmo,
-                          navg=args.navg, ozm=args.zonal_mean_bs)
-    if bs_regrid:
-        bs = regrid_basic_state(bs, bs_sp, sp)
+    # A NetCDF basic state is already on the model grid (no Fortran record
+    # markers for detect_grid); binaries may be on a coarser grid and regridded.
+    if args.basic_state.endswith(".nc"):
+        bs = load_basic_state(args.basic_state, sp, vg, kmo=args.kmo,
+                              navg=args.navg, ozm=args.zonal_mean_bs)
+    else:
+        bs_nlon, bs_nlat = detect_grid(args.basic_state)
+        bs_regrid = (bs_nlon, bs_nlat) != (sp.nlon, sp.nlat)
+        bs_sp = source_spectral(bs_nlon, bs_nlat) if bs_regrid else sp
+        bs = load_basic_state(args.basic_state, bs_sp, vg, kmo=args.kmo,
+                              navg=args.navg, ozm=args.zonal_mean_bs)
+        if bs_regrid:
+            bs = regrid_basic_state(bs, bs_sp, sp)
     if not args.quiet:
         bs.summary()
+
+    # --- moist physics (optional) -------------------------------------
+    moist = None
+    sst_anom = None
+    if args.moist:
+        sst_mean, wg_mean = load_moist_surface(args.sst_mean, args.wg_mean, sp)
+        moist = MoistPhysics(
+            vg, bs, sst=sst_mean, wg=wg_mean, delt=args.delt, device=args.device,
+            params=MoistParams(ttau0=args.mca_ttau0, qtau0=args.mca_qtau0,
+                               ttauc=args.mca_ttauc, sigkb=args.mca_sigkb,
+                               owes=args.owes))
+        if args.sst_anom:
+            sst_anom = load_sst_anomaly(args.sst_anom, sp)
+        if not args.quiet:
+            import numpy as _np
+            print(f"  moist: SST anomaly |max| "
+                  f"{float(_np.abs(sst_anom).max()):.2f} K"
+                  if sst_anom is not None else "  moist: no SST anomaly")
 
     mjo = None
     if args.mjo_forcing:
@@ -156,19 +203,20 @@ def main(argv=None):
                   robert=args.robert, sponge=not args.no_sponge,
                   strictly_linear=args.strictly_linear,
                   out_interval_days=args.out_interval,
-                  time_average=not args.instantaneous)
+                  time_average=not args.instantaneous, moist=args.moist)
     cfg = Config(**cfg_kw)
     model = LBM(bs, sp, vg, cfg)
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)) or ".", exist_ok=True)
-    writers = [GradsWriter(args.out + ".grd", sp, vg,
+    writers = [GradsWriter(args.out + ".grd", sp, vg, moist_vars=args.moist,
                            title="PyLBM-Isca T42L20 (Isca core)")]
     if args.netcdf:
-        writers.append(NetCDFWriter(args.out + ".nc", sp, vg))
+        writers.append(NetCDFWriter(args.out + ".nc", sp, vg,
+                                    moist_vars=args.moist))
     writer = MultiWriter(*writers)
 
     model.run(mjo_forcing=mjo, steady_forcing=steady, writer=writer,
-              verbose=not args.quiet)
+              moist=moist, sst_anom=sst_anom, verbose=not args.quiet)
     if not args.quiet:
         print(f"wrote {args.out}.grd and {args.out}.ctl"
               + (f" and {args.out}.nc" if args.netcdf else ""))

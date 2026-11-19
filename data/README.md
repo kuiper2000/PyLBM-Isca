@@ -1,7 +1,28 @@
 # Input data
 
-Binary inputs for the **realistic** experiment
-(`examples/example_3_realistic.ipynb`, manuscript Sect. 4.3). The idealised
+## NetCDF inputs (committed)
+
+Self-contained NetCDF inputs for the **realistic dry** experiment
+(`examples/example_3_realistic.ipynb`) and the **moist** experiment
+(`examples/example_4_moist.ipynb`). These ship in the repository.
+
+| file | size | description |
+|---|---|---|
+| `ncep.clim.t42.nc`   | 25 MB | **NCEP** pressure-level **basic state** climatology (12 months, 17 levels) on the 128×64 Gaussian grid; dims `(month, plev, lat, lon)`, vars z/rhum/q/t/u/v/omega, north-first. Read by `load_basic_state` (`.nc` path); JFM is `kmo=1, navg=3`. |
+| `sst.clim.t42.nc`    | 0.2 MB | **Mean SST** climatology `(month, lat, lon)`, var `sst` [K]. Surface-flux basic state for the moist model (`load_moist_surface`). |
+| `wg.clim.t42.nc`     | 0.1 MB | **Soil wetness** climatology `(month, lat, lon)`, var `wg` (0–1). Evaporation efficiency for the moist model (`load_moist_surface`). |
+| `frcsst.nino.t21.nc` | 21 KB | **El Niño SST anomaly** on a coarse T21 (64×32) grid, var `s` [K]; spectrally regridded to T42 by `load_sst_anomaly`. Prescribed forcing for the moist model. |
+
+Run the moist model from these with:
+
+```bash
+python run_lbm.py --basic-state data/ncep.clim.t42.nc --moist \
+    --days 10 --out out/isca.moist.elnino --netcdf
+```
+
+## Binary inputs (Zenodo)
+
+Binary inputs for the MJO forcing and the seasonality comparison. The idealised
 Gill and solid-body examples build their basic states analytically and need
 nothing from this folder.
 

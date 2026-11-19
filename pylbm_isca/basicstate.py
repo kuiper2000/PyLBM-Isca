@@ -109,6 +109,30 @@ def read_pressure_levels(path, kmo=1, navg=3, nlon=IMAX, nlat=JMAX, nlev=17,
     return out
 
 
+def read_ncep_nc(path, kmo=1, navg=3, nlev=17):
+    """Read and time-average a NetCDF basic state.
+
+    Mirrors :func:`read_pressure_levels` but for a CF NetCDF file with
+    dimensions ``(month, plev, lat, lon)`` that is already north-first (so no
+    latitude flip).  ``kmo`` is a 1-based month index and ``navg`` consecutive
+    months are averaged, wrapping past the end of the (12-month climatology)
+    file.
+
+    Returns a dict of ``(nlat, nlon, nlev)`` arrays for z, q, t, u, v.
+    """
+    from netCDF4 import Dataset                      # optional dependency
+
+    with Dataset(path) as ds:
+        nmo_file = len(ds.dimensions["month"])
+        months = [((kmo - 1 + i) % nmo_file) for i in range(navg)]
+        out = {}
+        for name in BS_KEEP:
+            arr = np.asarray(ds[name][:], dtype=np.float64)   # (month,plev,lat,lon)
+            arr = arr[months, :nlev].mean(axis=0)             # (plev,lat,lon)
+            out[name] = np.moveaxis(arr, 0, -1)               # (lat,lon,plev)
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Surface pressure
 # ---------------------------------------------------------------------------
@@ -272,6 +296,11 @@ class BasicState:
     lon_deg: np.ndarray = None
     sig: np.ndarray = None
     source: str = ""
+    # Moist-model surface fields (optional; consumed by pylbm_isca.moist.MoistPhysics).
+    sst: np.ndarray = None   # (nlat, nlon) mean sea-surface temperature [K]
+    wg: np.ndarray = None    # (nlat, nlon) soil wetness (0..1)
+    zs: np.ndarray = None    # (nlat, nlon) surface topography [m]
+    idx: np.ndarray = None   # (nlat, nlon) land/sea index (0=ocean, >0=land)
 
     def summary(self):
         print(f"basic state from {self.source}")
@@ -296,9 +325,15 @@ def load_basic_state(path, sp, vgrid, kmo=1, navg=3, zs=None,
 
     Order of operations: surface pressure is smoothed *before* the vertical
     interpolation, while u, v, T and q are smoothed *after* it.
+
+    A ``.nc`` ``path`` is read with :func:`read_ncep_nc` (CF NetCDF, already
+    north-first); any other path is read as the Fortran-sequential binary.
     """
-    raw = read_pressure_levels(path, kmo=kmo, navg=navg, nlon=sp.nlon, nlat=sp.nlat,
-                    nlev=len(plev), yflip=yflip)
+    if str(path).endswith(".nc"):
+        raw = read_ncep_nc(path, kmo=kmo, navg=navg, nlev=len(plev))
+    else:
+        raw = read_pressure_levels(path, kmo=kmo, navg=navg, nlon=sp.nlon,
+                                   nlat=sp.nlat, nlev=len(plev), yflip=yflip)
 
     if zs is None:
         zs = np.zeros((sp.nlat, sp.nlon))
@@ -322,3 +357,59 @@ def load_basic_state(path, sp, vgrid, kmo=1, navg=3, zs=None,
                       q=fields["q"], ps=ps, lat_deg=sp.lat_deg,
                       lon_deg=sp.lon_deg, sig=sig_host,
                       source=path)
+
+
+# ---------------------------------------------------------------------------
+# Moist-model surface fields (SST, soil wetness, SST anomaly)
+# ---------------------------------------------------------------------------
+def _nc_month_mean(path, var, months=(0, 1, 2)):
+    """Multi-month mean of a ``(month, lat, lon)`` NetCDF field, north-first."""
+    from netCDF4 import Dataset
+    with Dataset(path) as ds:
+        return np.asarray(ds[var][list(months)], dtype=np.float64).mean(axis=0)
+
+
+def load_moist_surface(sst_path, wg_path, sp, months=(0, 1, 2),
+                       sst_fill=300.0):
+    """Mean SST [K] and soil wetness (0..1) for the moist basic state.
+
+    Reads the ``sst`` and ``wg`` climatologies (``(month, lat, lon)``, already
+    on the model's north-first grid), averages ``months`` (default the boreal
+    winter JFM), and scrubs missing values: SST missing/over-land points are
+    filled with ``sst_fill`` and wetness is clipped to ``[0, 1]`` (default 1,
+    i.e. saturated, which makes land behave like ocean for evaporation unless a
+    land/sea index is supplied).
+
+    Returns ``(sst_mean, wg_mean)``, each ``(nlat, nlon)``.
+    """
+    sst = _nc_month_mean(sst_path, "sst", months)
+    sst = np.where(np.isfinite(sst) & (sst > 150.0), sst, sst_fill)
+    wg = _nc_month_mean(wg_path, "wg", months)
+    wg = np.clip(np.where(np.isfinite(wg), wg, 1.0), 0.0, 1.0)
+    if sst.shape != (sp.nlat, sp.nlon):
+        raise ValueError(f"SST grid {sst.shape} != model grid "
+                         f"{(sp.nlat, sp.nlon)}")
+    return sst, wg
+
+
+def load_sst_anomaly(path, sp, var="s", src_nmax=None):
+    """Prescribed SST anomaly [K] on the model grid, spectrally regridded.
+
+    The El-Nino sample anomaly ``frcsst.nino.t21.nc`` is stored on a coarse T21
+    (64x32) grid; it is read, missing values are set to zero, and it is
+    transformed to the model's T42 grid with the package's spectral regridder.
+    If the file is already on the model grid it is returned unchanged.
+    """
+    from netCDF4 import Dataset
+    from .regrid import regrid_scalar
+    from .spectral import Spectral
+
+    with Dataset(path) as ds:
+        a = np.asarray(ds[var][:], dtype=np.float64)              # (nlat, nlon)
+        s_nlat, s_nlon = a.shape
+    a = np.where(np.isfinite(a), a, 0.0)
+    if (s_nlat, s_nlon) == (sp.nlat, sp.nlon):
+        return a
+    nmax = src_nmax or (s_nlon - 1) // 3
+    src = Spectral(nlon=s_nlon, nlat=s_nlat, nmax=nmax, device="cpu")
+    return asnumpy(regrid_scalar(src, sp, a))

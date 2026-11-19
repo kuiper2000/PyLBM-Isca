@@ -82,6 +82,17 @@ _SCHEMA = {
         "scale": ("arg", "forcing_scale"),
         "south_first": ("arg", "yflip"),
     },
+    "moist": {
+        "enabled": ("arg", "moist"),
+        "sst_mean": ("arg", "sst_mean"),
+        "wg_mean": ("arg", "wg_mean"),
+        "sst_anom": ("arg", "sst_anom"),
+        "ttau0": ("arg", "mca_ttau0"),
+        "qtau0": ("arg", "mca_qtau0"),
+        "ttauc": ("arg", "mca_ttauc"),
+        "sigkb": ("arg", "mca_sigkb"),
+        "owes": ("arg", "owes"),
+    },
     "output": {
         "out": ("arg", "out"),
         "netcdf": ("arg", "netcdf"),
