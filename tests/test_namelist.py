@@ -88,8 +88,8 @@ def test_sample_file_matches_cli_defaults():
     """examples/mjo_phase1.toml reproduces run_lbm.py's realistic defaults."""
     spec = load_namelist(SAMPLE)
     a = spec.arg_defaults
-    assert a["basic_state"] == "data/bs.1979.bin"
-    assert a["mjo_forcing"] == "data/frc.phase1.bin"
+    assert a["basic_state"] == "data/bs.1979.nc"
+    assert a["mjo_forcing"] == "data/frc.phase1.nc"
     assert a["days"] == 35
     assert a["spinup"] == 435
     assert a["out"] == "out/isca.1979.phase1"
@@ -111,5 +111,5 @@ def test_run_lbm_cli_overrides_namelist():
     parser.set_defaults(**spec.arg_defaults)
     args = parser.parse_args(["--days", "7", "--device", "cpu"])
     assert args.days == 7                     # overridden
-    assert args.basic_state == "data/bs.1979.bin"   # from the file
+    assert args.basic_state == "data/bs.1979.nc"   # from the file
     assert args.spinup == 435                 # from the file

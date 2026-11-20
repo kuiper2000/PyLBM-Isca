@@ -42,12 +42,18 @@ _REC_DTYPE = ">f4"
 # Grid detection
 # ---------------------------------------------------------------------------
 def detect_grid(path):
-    """Return ``(nlon, nlat)`` of a Fortran-sequential field file.
+    """Return ``(nlon, nlat)`` of a field file (NetCDF or Fortran-sequential).
 
-    Reads the first record marker (``npts*4`` bytes) and assumes the standard
-    Gaussian aspect ``nlon == 2*nlat``.  Raises if the marker does not factor
-    into such a grid, in which case the caller must pass the grid explicitly.
+    For a ``.nc`` file the ``lon``/``lat`` dimensions are read directly.  For a
+    binary file it reads the first record marker (``npts*4`` bytes) and assumes
+    the standard Gaussian aspect ``nlon == 2*nlat``.  Raises if the marker does
+    not factor into such a grid, in which case the caller must pass the grid
+    explicitly.
     """
+    if str(path).endswith(".nc"):
+        from netCDF4 import Dataset
+        with Dataset(path) as ds:
+            return len(ds.dimensions["lon"]), len(ds.dimensions["lat"])
     with open(path, "rb") as fh:
         marker = int(np.frombuffer(fh.read(4), dtype=">i4")[0])
     if marker <= 0 or marker % 4:

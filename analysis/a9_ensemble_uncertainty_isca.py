@@ -44,8 +44,8 @@ FIGDIR = os.path.join(MANU, "figures")
 ANADIR = os.path.join(MANU, "analysis")
 os.makedirs(FIGDIR, exist_ok=True)
 
-BS_FILE = os.path.join(DATA_ROOT, "bs.1979.bin")
-FRC_FILE = os.path.join(DATA_ROOT, "frc.phase1.bin")
+BS_FILE = os.path.join(DATA_ROOT, "bs.1979.nc")
+FRC_FILE = os.path.join(DATA_ROOT, "frc.phase1.nc")
 
 
 def load_bs(device):
@@ -73,8 +73,10 @@ def representative_heating(device):
 
 
 def _ndays(path, nlon, nlat):
-    from pylbm_isca.forcing import read_fortran_records
+    from pylbm_isca.forcing import read_fortran_records, MJOForcing
     from pylbm_isca.constants import KMAX
+    if str(path).endswith(".nc"):
+        return MJOForcing._read_nc(path).shape[0]
     rec = read_fortran_records(path, nlon, nlat)
     return rec.shape[0] // KMAX
 

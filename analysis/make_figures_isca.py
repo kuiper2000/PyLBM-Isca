@@ -49,8 +49,8 @@ os.makedirs(FIGDIR, exist_ok=True)
 
 # realistic-case inputs (ERA5-derived; archived on Zenodo)
 DATA = os.path.join(ISCA_ROOT, "data")
-BS_1979 = os.path.join(DATA, "bs.1979.bin")
-FRC_PHASE1 = os.path.join(DATA, "frc.phase1.bin")
+BS_1979 = os.path.join(DATA, "bs.1979.nc")
+FRC_PHASE1 = os.path.join(DATA, "frc.phase1.nc")
 
 print(f"PyLBM-Isca figures  backend={DEVICE}  -> {FIGDIR}")
 

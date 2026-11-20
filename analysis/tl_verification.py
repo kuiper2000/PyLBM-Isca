@@ -27,7 +27,7 @@ Isca's full nonlinear core is not run here; this verifies the linearization of
 the *implemented* tendency (the derivation's correspondence to Isca is
 established by the equation-to-code audit, Appendix A / docs/equation_code_map.md).
 
-Usage:  python analysis/tl_verification.py [--basic-state data/bs.1979.bin]
+Usage:  python analysis/tl_verification.py [--basic-state data/bs.1979.nc]
 Outputs: analysis/tl_verification.{pdf,png,json} and a printed table.
 """
 import argparse
@@ -122,7 +122,7 @@ def norm(x):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--basic-state",
-                    default=os.path.join(ROOT, "data", "bs.1979.bin"))
+                    default=os.path.join(ROOT, "data", "bs.1979.nc"))
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--no-plot", action="store_true")
     args = ap.parse_args()

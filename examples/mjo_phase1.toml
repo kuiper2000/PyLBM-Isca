@@ -40,13 +40,13 @@ robert          = 0.04      # Robert-Asselin time-filter coefficient
 strictly_linear = false     # true drops the 0.5*(u'^2+v'^2) term Isca keeps
 
 [input]                     # &nminit
-basic_state = "data/bs.1979.bin"
+basic_state = "data/bs.1979.nc"
 kmo         = 1             # first month (1-based)
 navg        = 3             # months to average
 zonal_mean  = false
 
 [forcing]                   # &nmfrc / &nmsfrc
-mjo    = "data/frc.phase1.bin"
+mjo    = "data/frc.phase1.nc"
 spinup = 435               # calls holding day 1 before the forcing marches
 scale  = 1.0
 south_first = false        # forcing rows are north-first by default

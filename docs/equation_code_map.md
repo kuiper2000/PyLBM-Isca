@@ -1,4 +1,4 @@
-# Equation-to-code mapping (PyLBM-Isca v1.0.0)
+# Equation-to-code mapping (PyLBM-Isca v1.0.1)
 
 This document maps every tendency term in the governing equations of the model
 description (manuscript Sect. 2, Eqs. 2–10) to its implementation, and records

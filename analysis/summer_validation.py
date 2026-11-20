@@ -110,9 +110,9 @@ def wstats(a, b, w2d):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--djf", default=os.path.join(ROOT, "data", "bs.1979.bin"))
-    ap.add_argument("--jja", default=os.path.join(ROOT, "data", "bs.jja.bin"))
-    ap.add_argument("--mjo-forcing", default=os.path.join(ROOT, "data", "frc.phase1.bin"))
+    ap.add_argument("--djf", default=os.path.join(ROOT, "data", "bs.1979.nc"))
+    ap.add_argument("--jja", default=os.path.join(ROOT, "data", "bs.jja.nc"))
+    ap.add_argument("--mjo-forcing", default=os.path.join(ROOT, "data", "frc.phase1.nc"))
     ap.add_argument("--ndays", type=int, default=35)
     ap.add_argument("--device", default="auto")
     args = ap.parse_args()

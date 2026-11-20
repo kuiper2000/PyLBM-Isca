@@ -109,8 +109,8 @@ def rms(a, coslat):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--basic-state", default=os.path.join(ROOT, "data", "bs.1979.bin"))
-    ap.add_argument("--mjo-forcing", default=os.path.join(ROOT, "data", "frc.phase1.bin"))
+    ap.add_argument("--basic-state", default=os.path.join(ROOT, "data", "bs.1979.nc"))
+    ap.add_argument("--mjo-forcing", default=os.path.join(ROOT, "data", "frc.phase1.nc"))
     ap.add_argument("--ngrow", type=int, default=48)
     ap.add_argument("--nforce", type=int, default=45)
     ap.add_argument("--device", default="auto")

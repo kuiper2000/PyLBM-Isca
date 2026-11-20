@@ -310,9 +310,9 @@ live in [`CITATION.cff`](CITATION.cff); GitHub shows a ready-made citation via
 *"Cite this repository"*. The archive is on Zenodo:
 
 - **Concept DOI** (always the latest version): [10.5281/zenodo.24084237](https://doi.org/10.5281/zenodo.24084237)
-- **This release (v1.0.0):** [10.5281/zenodo.24114461](https://doi.org/10.5281/zenodo.24114461)
+- **This release (v1.0.1):** cite the concept DOI above — it resolves to the newest archived version.
 
 ```
 Tseng, Kai-Chih (2026). PyLBM-Isca: a Linear Baroclinic Model on the Isca/GFDL
-spectral core (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.24114461
+spectral core (v1.0.1). Zenodo. https://doi.org/10.5281/zenodo.24084237
 ```

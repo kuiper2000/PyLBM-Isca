@@ -6,8 +6,8 @@ Example, reproducing an MJO phase-1 teleconnection experiment on the ERA5
 DJF 1979 basic state (inputs archived on Zenodo; see data/README.md)::
 
     python run_lbm.py \\
-        --basic-state data/bs.1979.bin \\
-        --mjo-forcing data/frc.phase1.bin \\
+        --basic-state data/bs.1979.nc \\
+        --mjo-forcing data/frc.phase1.nc \\
         --days 35 --out out/isca.1979.phase1 --device auto
 
 writes ``out/isca.1979.phase1.grd`` + ``.ctl`` (GrADS record order) and,
@@ -45,7 +45,8 @@ def build_parser():
 
     g = p.add_argument_group("input")
     g.add_argument("--basic-state", default=None,
-                   help="ERA5 pressure-level basic state, e.g. bs.1979.bin")
+                   help="ERA5 pressure-level basic state, e.g. bs.1979.nc "
+                        "(.nc or legacy .bin)")
     g.add_argument("--kmo", type=int, default=1, help="first month (1-based)")
     g.add_argument("--navg", type=int, default=3, help="months to average")
     g.add_argument("--zonal-mean-bs", action="store_true",
@@ -53,7 +54,8 @@ def build_parser():
 
     g = p.add_argument_group("forcing")
     g.add_argument("--mjo-forcing", default=None,
-                   help="time-varying temperature forcing (frc.phaseN.bin)")
+                   help="time-varying temperature forcing, e.g. "
+                        "frc.phase1.nc (.nc or legacy .bin)")
     g.add_argument("--steady-forcing", default=None,
                    help="steady vor/div/T/lnPs forcing, 61 records per case")
     g.add_argument("--case", type=int, default=1, help="steady-forcing case")
@@ -177,16 +179,31 @@ def main(argv=None):
 
     mjo = None
     if args.mjo_forcing:
-        f_nlon, f_nlat = detect_grid(args.mjo_forcing)
-        info = autodetect(args.mjo_forcing, nlon=f_nlon, nlat=f_nlat)
-        ndays = info.get("mjo_days")
-        if ndays is None:
-            raise SystemExit(f"{args.mjo_forcing}: not a multiple of {vg.kmax}")
-        mjo = MJOForcing(args.mjo_forcing, ndays=ndays, nlon=f_nlon, nlat=f_nlat,
-                         nt=int(round(86400.0 / args.delt)), spinup=args.spinup,
-                         yflip=args.yflip, scale=args.forcing_scale)
-        if (f_nlon, f_nlat) != (sp.nlon, sp.nlat):
-            mjo = regrid_mjo_forcing(mjo, source_spectral(f_nlon, f_nlat), sp)
+        if args.mjo_forcing.endswith(".nc"):
+            # A NetCDF forcing carries its own grid/length; it is assumed to be
+            # on the model grid (no Fortran record markers for detect_grid).
+            mjo = MJOForcing(args.mjo_forcing, nlev=vg.kmax,
+                             nt=int(round(86400.0 / args.delt)),
+                             spinup=args.spinup, yflip=args.yflip,
+                             scale=args.forcing_scale)
+            if mjo.gtf.shape[1:3] != (sp.nlat, sp.nlon):
+                raise SystemExit(
+                    f"{args.mjo_forcing}: grid {mjo.gtf.shape[2]}x"
+                    f"{mjo.gtf.shape[1]} != model {sp.nlon}x{sp.nlat}; "
+                    "regrid the NetCDF forcing to the model grid first")
+        else:
+            f_nlon, f_nlat = detect_grid(args.mjo_forcing)
+            info = autodetect(args.mjo_forcing, nlon=f_nlon, nlat=f_nlat)
+            ndays = info.get("mjo_days")
+            if ndays is None:
+                raise SystemExit(
+                    f"{args.mjo_forcing}: not a multiple of {vg.kmax}")
+            mjo = MJOForcing(args.mjo_forcing, ndays=ndays, nlon=f_nlon,
+                             nlat=f_nlat, nt=int(round(86400.0 / args.delt)),
+                             spinup=args.spinup, yflip=args.yflip,
+                             scale=args.forcing_scale)
+            if (f_nlon, f_nlat) != (sp.nlon, sp.nlat):
+                mjo = regrid_mjo_forcing(mjo, source_spectral(f_nlon, f_nlat), sp)
 
     steady = None
     if args.steady_forcing:

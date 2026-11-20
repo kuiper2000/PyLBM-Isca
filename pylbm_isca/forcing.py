@@ -109,19 +109,51 @@ class MJOForcing:
     """
 
     def __init__(self, path, nlev=KMAX, ndays=73, nt=72, spinup=435,
-                 yflip=False, nlon=IMAX, nlat=JMAX, scale=1.0):
-        rec = read_fortran_records(path, nlon, nlat)
-        expect = ndays * nlev
-        if rec.shape[0] != expect:
-            raise ValueError(
-                f"{path}: expected {expect} records ({ndays} days x {nlev} "
-                f"levels), got {rec.shape[0]}.  Check ndays/nlev.")
-        rec = _orient(rec, yflip) * scale
-        # (day, lev, lat, lon) -> (day, lat, lon, lev)
-        self.gtf = np.moveaxis(rec.reshape(ndays, nlev, nlat, nlon), 1, -1)
+                 yflip=False, nlon=IMAX, nlat=JMAX, scale=1.0, var="t"):
+        if str(path).endswith(".nc"):
+            gtf = self._read_nc(path, var=var)                 # (day,lev,lat,lon)
+            file_days, file_lev = gtf.shape[0], gtf.shape[1]
+            if file_lev != nlev:
+                raise ValueError(
+                    f"{path}: file has {file_lev} levels, expected nlev={nlev}.")
+            ndays = file_days                                  # trust the file
+            if yflip:
+                gtf = gtf[:, :, ::-1, :]
+            gtf = gtf * scale
+            # (day, lev, lat, lon) -> (day, lat, lon, lev)
+            self.gtf = np.moveaxis(gtf, 1, -1)
+        else:
+            rec = read_fortran_records(path, nlon, nlat)
+            expect = ndays * nlev
+            if rec.shape[0] != expect:
+                raise ValueError(
+                    f"{path}: expected {expect} records ({ndays} days x {nlev} "
+                    f"levels), got {rec.shape[0]}.  Check ndays/nlev.")
+            rec = _orient(rec, yflip) * scale
+            # (day, lev, lat, lon) -> (day, lat, lon, lev)
+            self.gtf = np.moveaxis(rec.reshape(ndays, nlev, nlat, nlon), 1, -1)
         self.ndays, self.nt, self.spinup = ndays, nt, spinup
         self.path = path
         self.reset()
+
+    @staticmethod
+    def _read_nc(path, var="t"):
+        """Read a NetCDF MJO forcing as ``(day, lev, lat, lon)``, north-first.
+
+        Companion to :func:`read_fortran_records` for the binary layout; the
+        file written by ``data/convert_bin_to_nc.py`` stores the heating in var
+        ``t`` with dims ``(day, lev, lat, lon)`` and needs no latitude flip.
+        """
+        from netCDF4 import Dataset                        # optional dependency
+        with Dataset(path) as ds:
+            if var not in ds.variables:
+                raise ValueError(f"{path}: no '{var}' variable "
+                                 f"(have {list(ds.variables)})")
+            arr = np.asarray(ds[var][:], dtype=np.float64)
+        if arr.ndim != 4:
+            raise ValueError(f"{path}: '{var}' must be 4-D (day,lev,lat,lon), "
+                             f"got shape {arr.shape}")
+        return arr
 
     def reset(self):
         self.counter = 0

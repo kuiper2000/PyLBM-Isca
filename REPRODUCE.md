@@ -1,4 +1,4 @@
-# Reproducing the PyLBM-Isca v1.0.0 results
+# Reproducing the PyLBM-Isca v1.0.1 results
 
 This document lists the exact commands, inputs, and seeds needed to reproduce the
 principal results of the GMD manuscript from a clean checkout. All commands are
@@ -6,8 +6,8 @@ run from the repository root.
 
 ## Release identity
 
-- Code: tag **v1.0.0**, GitHub `kuiper2000/PyLBM-Isca`, Zenodo version DOI
-  **10.5281/zenodo.24114461** (concept DOI 10.5281/zenodo.24084237).
+- Code: tag **v1.0.1**, GitHub `kuiper2000/PyLBM-Isca`, Zenodo concept DOI
+  **10.5281/zenodo.24084237** (resolves to the newest archived version).
 - Input data: Zenodo **10.5281/zenodo.24086134**.
 
 ## 1. Environment

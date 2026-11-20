@@ -15,8 +15,8 @@ authors:
     given-names: "Kai-Chih"
     orcid: "https://orcid.org/0000-0002-4789-705X"
     affiliation: "Department of Atmospheric Sciences, National Taiwan University"
-version: "1.0.0"
-doi: 10.5281/zenodo.24114461
+version: "1.0.1"
+doi: 10.5281/zenodo.24084237
 license: GPL-3.0-or-later
 repository-code: "https://github.com/kuiper2000/PyLBM-Isca"
 identifiers:
